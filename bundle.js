@@ -19,6 +19,41 @@ var _d2 = _interopRequireDefault(_d);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+var createHook = function createHook(comp, elem, statename) {
+	var elems = new Map(),
+	    interval = undefined;
+	var updateState = function updateState() {
+		comp.setState(_defineProperty({}, statename, elem.toReact()));
+		console.log("UPDATE", elems.size);
+	};
+	setTimeout(updateState);
+	comp.isAnimating = function () {
+		return !!interval;
+	};
+	return function (transition) {
+		transition.each(function (e) {
+			elems.set(e, (elems.get(e) || new Set()).add(transition.id));
+			interval = interval || setInterval(updateState, 16);
+		});
+		transition.each("end", function (e) {
+			if (false || elems.get(e)) {
+				// shouldn't happen but still does
+				var anims = elems.get(e);
+				anims.delete(transition.id);
+				console.log("deleted transition to element", anims, e);
+				if (anims.size) {
+					elems.set(e, anims);
+				} else {
+					elems.delete(e);
+				}
+			}
+			if (!elems.size) interval = clearInterval(interval);
+		});
+	};
+};
+
 var App = _react2.default.createClass({
 	displayName: 'App',
 
@@ -44,9 +79,10 @@ var Chart = _react2.default.createClass({
 		return { chart: _react2.default.createElement('span', null), look: 'stacked' };
 	},
 	componentDidMount: function componentDidMount() {
-		var _this = this;
 
 		var faux = new _reactFauxDom2.default.Element('div');
+
+		var hook = createHook(this, faux, "chart");
 
 		function bumpLayer(n, o) {
 
@@ -120,7 +156,7 @@ var Chart = _react2.default.createClass({
 			return y(d.y0 + d.y);
 		}).attr("height", function (d) {
 			return y(d.y0) - y(d.y0 + d.y);
-		}).duration(200);
+		}).duration(200).call(hook);
 
 		this.transitionGrouped = function () {
 			y.domain([0, yGroupMax]);
@@ -129,12 +165,11 @@ var Chart = _react2.default.createClass({
 				return i * 10;
 			}).attr("x", function (d, i, j) {
 				return x(d.x) + x.rangeBand() / n * j;
-			}).attr("width", x.rangeBand() / n).transition().attr("y", function (d) {
+			}).attr("width", x.rangeBand() / n).call(hook).transition().attr("y", function (d) {
 				return y(d.y);
 			}).attr("height", function (d) {
 				return height - y(d.y);
-			});
-			_this.showAnimation(3000);
+			}).call(hook);
 		};
 
 		this.transitionStacked = function () {
@@ -146,37 +181,22 @@ var Chart = _react2.default.createClass({
 				return y(d.y0 + d.y);
 			}).attr("height", function (d) {
 				return y(d.y0) - y(d.y0 + d.y);
-			}).transition().attr("x", function (d) {
+			}).call(hook).transition().attr("x", function (d) {
 				return x(d.x);
-			}).attr("width", x.rangeBand());
-			_this.showAnimation(3000);
+			}).attr("width", x.rangeBand()).call(hook);
 		};
 
 		svg.append("g").attr("class", "x axis").attr("transform", "translate(0," + height + ")").call(xAxis);
-
-		this.element = faux;
-
-		this.showAnimation(800); // JSX: show initial render animation!
-	},
-	showAnimation: function showAnimation(dur) {
-		var _this2 = this;
-
-		var until = Date.now() + dur;
-		var frame = function frame() {
-			if (Date.now() < until) {
-				_this2.setState({ chart: _this2.element.toReact() });
-				setTimeout(frame, 14);
-			}
-		};
-		frame();
 	},
 	toggle: function toggle() {
-		if (this.state.look === 'stacked') {
-			this.setState({ look: 'grouped' });
-			this.transitionGrouped();
-		} else {
-			this.setState({ look: 'stacked' });
-			this.transitionStacked();
+		if (!this.isAnimating()) {
+			if (this.state.look === 'stacked') {
+				this.setState({ look: 'grouped' });
+				this.transitionGrouped();
+			} else {
+				this.setState({ look: 'stacked' });
+				this.transitionStacked();
+			}
 		}
 	},
 	render: function render() {

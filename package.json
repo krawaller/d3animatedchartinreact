@@ -1,5 +1,5 @@
 {
-  "name": "D3 animations in React",
+  "name": "react-d3-anims",
   "version": "0.0.1",
   "description": "D3 animations in React",
   "main": "index.js",

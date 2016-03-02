@@ -3,6 +3,34 @@ import ReactDOM from 'react-dom'
 import Faux from 'react-faux-dom'
 import d3 from 'd3'
 
+
+let createHook = (comp,elem,statename) => {
+	let elems = new Map(),
+		interval
+	const updateState = ()=> {
+		comp.setState({[statename]:elem.toReact()})
+	}
+	setTimeout(updateState)
+	comp.isAnimating = ()=> !!interval
+	return (transition)=> {
+		transition.each((e)=>{
+			elems.set(e,(elems.get(e) || new Set()).add(transition.id))
+			interval = interval || setInterval(updateState,16)
+		})
+		transition.each("end",(e)=>{
+			let anims = elems.get(e)
+			anims.delete(transition.id)
+			if (anims.size){
+				elems.set(e,anims)
+			} else {
+				elems.delete(e)
+			}
+			if (!elems.size) interval = clearInterval(interval)
+		})
+	}
+}
+
+
 let App = React.createClass({
 	getInitialState: function(){
 		return {show:false}
@@ -21,7 +49,11 @@ let Chart = React.createClass({
 	},
 	componentDidMount: function(){
 
+
+
 		let faux = new Faux.Element('div')
+
+		let hook = createHook(this,faux,"chart")
 
 		function bumpLayer(n, o) {
 
@@ -95,7 +127,8 @@ let Chart = React.createClass({
 		    .delay(function(d, i) { return i * 10; })
 		    .attr("y", function(d) { return y(d.y0 + d.y); })
 		    .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); })
-		    .duration(200);
+		    .duration(200)
+		    .call(hook)
 
 	    this.transitionGrouped = ()=> {
 	      y.domain([0, yGroupMax]);
@@ -105,10 +138,11 @@ let Chart = React.createClass({
 	          .delay(function(d, i) { return i * 10; })
 	          .attr("x", function(d, i, j) { return x(d.x) + x.rangeBand() / n * j; })
 	          .attr("width", x.rangeBand() / n)
+	          .call(hook)
 	        .transition()
 	          .attr("y", function(d) { return y(d.y); })
-	          .attr("height", function(d) { return height - y(d.y); });
-	       this.showAnimation(3000)
+	          .attr("height", function(d) { return height - y(d.y); })
+	          .call(hook)
 	    }
 
 	    this.transitionStacked = ()=> {
@@ -119,38 +153,27 @@ let Chart = React.createClass({
 	          .delay(function(d, i) { return i * 10; })
 	          .attr("y", function(d) { return y(d.y0 + d.y); })
 	          .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); })
+			  .call(hook)
 	        .transition()
 	          .attr("x", function(d) { return x(d.x); })
-	          .attr("width", x.rangeBand());
-	      this.showAnimation(3000)
+	          .attr("width", x.rangeBand())
+	          .call(hook)
 	    }
 
 		svg.append("g")
 		    .attr("class", "x axis")
 		    .attr("transform", "translate(0," + height + ")")
 		    .call(xAxis);
-
-		this.element = faux;
-
-		this.showAnimation(800) // JSX: show initial render animation!
-	},
-	showAnimation: function(dur){
-		let until = Date.now() + dur
-		let frame = ()=>{
-			if (Date.now()<until){
-				this.setState({chart: this.element.toReact() })
-				setTimeout(frame,14)
-			}
-		}
-		frame()
 	},
 	toggle: function(){
-		if (this.state.look === 'stacked'){
-			this.setState({ look: 'grouped' })
-			this.transitionGrouped();
-		} else {
-			this.setState({ look: 'stacked' })
-			this.transitionStacked();
+		if (!this.isAnimating()){
+			if (this.state.look === 'stacked'){
+				this.setState({ look: 'grouped' })
+				this.transitionGrouped();
+			} else {
+				this.setState({ look: 'stacked' })
+				this.transitionStacked();
+			}
 		}
 	},
 	render: function(){
