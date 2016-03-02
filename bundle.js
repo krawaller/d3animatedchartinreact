@@ -26,7 +26,6 @@ var createHook = function createHook(comp, elem, statename) {
 	    interval = undefined;
 	var updateState = function updateState() {
 		comp.setState(_defineProperty({}, statename, elem.toReact()));
-		console.log("UPDATE", elems.size);
 	};
 	setTimeout(updateState);
 	comp.isAnimating = function () {
@@ -38,16 +37,12 @@ var createHook = function createHook(comp, elem, statename) {
 			interval = interval || setInterval(updateState, 16);
 		});
 		transition.each("end", function (e) {
-			if (false || elems.get(e)) {
-				// shouldn't happen but still does
-				var anims = elems.get(e);
-				anims.delete(transition.id);
-				console.log("deleted transition to element", anims, e);
-				if (anims.size) {
-					elems.set(e, anims);
-				} else {
-					elems.delete(e);
-				}
+			var anims = elems.get(e);
+			anims.delete(transition.id);
+			if (anims.size) {
+				elems.set(e, anims);
+			} else {
+				elems.delete(e);
 			}
 			if (!elems.size) interval = clearInterval(interval);
 		});
@@ -81,8 +76,9 @@ var Chart = _react2.default.createClass({
 	componentDidMount: function componentDidMount() {
 
 		var faux = new _reactFauxDom2.default.Element('div');
-
 		var hook = createHook(this, faux, "chart");
+
+		// D3 code by Mike Bostock, https://bl.ocks.org/mbostock/3943967
 
 		function bumpLayer(n, o) {
 

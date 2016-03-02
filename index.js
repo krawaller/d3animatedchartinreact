@@ -49,11 +49,10 @@ let Chart = React.createClass({
 	},
 	componentDidMount: function(){
 
-
-
 		let faux = new Faux.Element('div')
-
 		let hook = createHook(this,faux,"chart")
+
+		// D3 code by Mike Bostock, https://bl.ocks.org/mbostock/3943967
 
 		function bumpLayer(n, o) {
 
