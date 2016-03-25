@@ -13,7 +13,8 @@
     "babel-preset-react": "^6.3.13"
   },
   "scripts": {
-    "build": "browserify -t [ babelify --presets [ es2015 react ] ] index.js -o bundle.js"
+    "build": "browserify -t [ babelify --presets [ es2015 react ] ] index.js -o bundle.js",
+    "build2": "browserify -t [ babelify --presets [ es2015 react ] ] v2/index.js -o v2/bundle.js"
   },
   "author": "",
   "license": "ISC"

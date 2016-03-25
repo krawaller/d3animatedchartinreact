@@ -31,6 +31,31 @@ let createHook = (comp,elem,statename) => {
 }
 
 
+
+
+function bumpLayer(n, o) {
+
+  function bump(a) {
+    var x = 1 / (.1 + Math.random()),
+        y = 2 * Math.random() - .5,
+        z = 10 / (.1 + Math.random());
+    for (var i = 0; i < n; i++) {
+      var w = (i / n - y) * z;
+      a[i] += x * Math.exp(-w * w);
+    }
+  }
+
+  var a = [], i;
+  for (i = 0; i < n; ++i) a[i] = o + o * Math.random();
+  for (i = 0; i < 5; ++i) bump(a);
+  return a.map(function(d, i) { return {x: i, y: Math.max(0, d)}; });
+}
+
+let data = [0,1,2,3].map(function() { return bumpLayer(36, .1); });
+
+
+
+
 let App = React.createClass({
 	getInitialState: function(){
 		return {show:false}
@@ -38,10 +63,12 @@ let App = React.createClass({
 	show: function(){
 		this.setState({show:true})
 	},
-	render: function(){
-		return this.state.show ? <Chart /> : <button onClick={this.show}>Show chart</button>
+	render: function(){ // Passing in data to chart
+		return this.state.show ? <Chart data={data} /> : <button onClick={this.show}>Show chart</button>
 	}
 })
+
+
 
 let Chart = React.createClass({
 	getInitialState: function(){
@@ -54,34 +81,13 @@ let Chart = React.createClass({
 
 		// D3 code by Mike Bostock, https://bl.ocks.org/mbostock/3943967
 
-		function bumpLayer(n, o) {
-
-		  function bump(a) {
-		    var x = 1 / (.1 + Math.random()),
-		        y = 2 * Math.random() - .5,
-		        z = 10 / (.1 + Math.random());
-		    for (var i = 0; i < n; i++) {
-		      var w = (i / n - y) * z;
-		      a[i] += x * Math.exp(-w * w);
-		    }
-		  }
-
-		  var a = [], i;
-		  for (i = 0; i < n; ++i) a[i] = o + o * Math.random();
-		  for (i = 0; i < 5; ++i) bump(a);
-		  return a.map(function(d, i) { return {x: i, y: Math.max(0, d)}; });
-		}
-
-
-		var n = 4, // number of layers
-		    m = 36, // number of samples per layer
+		var givenData = this.props.data,
+			n = givenData.length, // number of layers
+		    m = givenData[0].length, // number of samples per layer
 		    stack = d3.layout.stack(),
-		    data = d3.range(n).map(function() { return bumpLayer(m, .1); }),
-		    layers = stack(data),
+		    layers = stack(givenData),
 		    yGroupMax = d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y; }); }),
 		    yStackMax = d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y0 + d.y; }); });
-
-		console.log("DATA",data)
 
 		var margin = {top: 40, right: 10, bottom: 20, left: 10},
 		    width = 600 - margin.left - margin.right,
