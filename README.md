@@ -1,0 +1,1 @@
+This is a demonstration of how to do D3 animations in a React component. Check it out [here](http://blog.krawaller.se/applets/react-d3-anim/), and see the accompanying blog post [here](http://blog.krawaller.se/posts/using-d3-js-with-animations-in-react/)
